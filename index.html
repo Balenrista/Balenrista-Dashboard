@@ -62,7 +62,6 @@
 </head>
 <body class="pb-28">
 
-    <!-- 🔴 หน้า Loading พื้นดำ โลโก้สีแดง Black Kite 🔴 -->
     <div id="loading" class="fixed inset-0 bg-[#0A0A0A] z-[999] flex flex-col items-center justify-center">
         <div class="loader">
             <div class="leaf"></div><div class="leaf"></div><div class="leaf"></div>
@@ -76,37 +75,7 @@
                 <h1 class="text-2xl font-black tracking-tight text-[#B7B4AE]">Balen<span class="text-[#371E1E]">rista.</span></h1>
                 <p class="text-xs text-[#726E68] font-medium tracking-wide">Business Dashboard</p>
             </div>
-                        <div class="w-12 h-12 bg-[#33312F] rounded-full p-2 flex items-center justify-center border border-[#726E68]">
-                <!-- กราฟิกแก้วกาแฟ 8-Bit Pixel ล้วน (ขยับได้) -->
-                <svg width="26" height="26" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
-                    <!-- ขอบปากแก้ว (สีกาแฟ) -->
-                    <rect x="4" y="6" width="6" height="1" fill="#371E1E"/>
-                    
-                    <!-- ตัวแก้วกาแฟ -->
-                    <rect x="4" y="7" width="6" height="5" fill="#B7B4AE"/>
-                    <rect x="5" y="12" width="4" height="1" fill="#B7B4AE"/>
-                    
-                    <!-- หูจับแก้ว -->
-                    <rect x="10" y="8" width="2" height="1" fill="#B7B4AE"/>
-                    <rect x="11" y="9" width="1" height="1" fill="#B7B4AE"/>
-                    <rect x="10" y="10" width="2" height="1" fill="#B7B4AE"/>
-                    
-                    <!-- อนิเมชั่นควันซ้าย (ขยับขึ้นและจางลง) -->
-                    <g fill="#726E68">
-                        <animateTransform attributeName="transform" type="translate" values="0 0; 0 -2; 0 -4" dur="2s" repeatCount="indefinite"/>
-                        <animate attributeName="opacity" values="0; 1; 0" dur="2s" repeatCount="indefinite"/>
-                        <rect x="5" y="4" width="1" height="2"/>
-                    </g>
-                    
-                    <!-- อนิเมชั่นควันขวา (ขยับขึ้นสลับจังหวะ) -->
-                    <g fill="#726E68">
-                        <animateTransform attributeName="transform" type="translate" values="0 0; 0 -2; 0 -4" dur="2s" begin="1s" repeatCount="indefinite"/>
-                        <animate attributeName="opacity" values="0; 1; 0" dur="2s" begin="1s" repeatCount="indefinite"/>
-                        <rect x="8" y="5" width="1" height="2"/>
-                    </g>
-                </svg>
-            </div>
-        <!-- 🟢 ปุ่มรวมแอปย่อย (App Launcher) แทรกก่อนปิด header -->
+            
         <div class="relative inline-block text-left mr-4">
             <button id="appsDropdownBtn" onclick="toggleAppsMenu()" class="w-10 h-10 flex items-center justify-center bg-[#33312F] text-[#B7B4AE] rounded-full hover:bg-[#726E68] transition border border-[#726E68]">
                 <i class="ph-bold ph-squares-four text-xl"></i>
@@ -209,27 +178,14 @@
         </div> 
     </div> 
 
-    <!-- 
-    ======================================================
-    👇 BOTTOM NAV: อยากสลับตำแหน่งปุ่ม สลับบรรทัดตรงนี้ได้เลยครับ 👇
-    ====================================================== 
-    -->
     <div class="bottom-nav no-capture">
-        <!-- 1. ปุ่ม Home (รีเฟรช) -->
         <button class="nav-item active" onclick="location.reload()"><i class="ph-fill ph-house"></i></button>
-        <!-- 2. ปุ่มเพิ่มค่าใช้จ่าย (สีแดง Black Kite) -->
         <button class="nav-item" onclick="openManualModal('expense')"><i class="ph-bold ph-receipt text-[#371E1E]"></i></button>
-        <!-- 3. ปุ่มสแกนบิล AI (สีสว่าง Ashes) -->
         <button class="nav-item" onclick="openScanModal()"><i class="ph-bold ph-plus-circle text-[32px] text-[#B7B4AE]"></i></button>
-        <!-- 4. ปุ่มซื้อวัตถุดิบ (สีเทา Light Charcoal) -->
         <button class="nav-item" onclick="openManualModal('material')"><i class="ph-bold ph-package text-[#726E68]"></i></button>
-        <!-- 5. ปุ่มแคปหน้าจอ -->
         <button onclick="saveAsImage()" class="nav-item"><i class="ph-fill ph-camera"></i></button>
-        <!-- 6. ปุ่มซิงค์ข้อมูล -->
         <button onclick="fetchData()" class="nav-item"><i class="ph-bold ph-arrows-clockwise"></i></button>
     </div>
-    <!-- ====================================================== -->
-
     <div id="detailModal" class="modal-overlay" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div id="modal-header" class="p-6 pb-4 bg-[#371E1E] text-[#B7B4AE] flex justify-between items-center rounded-t-[32px]">
