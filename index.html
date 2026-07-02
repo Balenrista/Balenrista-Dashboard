@@ -76,7 +76,7 @@
                 <h1 class="text-2xl font-black tracking-tight text-[#B7B4AE]">Balen<span class="text-[#371E1E]">rista.</span></h1>
                 <p class="text-xs text-[#726E68] font-medium tracking-wide">Business Dashboard</p>
             </div>
-                <div class="w-12 h-12 bg-[#33312F] rounded-full p-2 flex items-center justify-center border border-[#726E68]">
+                        <div class="w-12 h-12 bg-[#33312F] rounded-full p-2 flex items-center justify-center border border-[#726E68]">
                 <!-- กราฟิกแก้วกาแฟ 8-Bit Pixel ล้วน (ขยับได้) -->
                 <svg width="26" height="26" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
                     <!-- ขอบปากแก้ว (สีกาแฟ) -->
@@ -106,18 +106,14 @@
                     </g>
                 </svg>
             </div>
-                 <!-- 🟢 ปุ่มรวมแอปย่อย (App Launcher) แทรกก่อนปิด header -->
+        <!-- 🟢 ปุ่มรวมแอปย่อย (App Launcher) แทรกก่อนปิด header -->
         <div class="relative inline-block text-left mr-4">
             <button id="appsDropdownBtn" onclick="toggleAppsMenu()" class="w-10 h-10 flex items-center justify-center bg-[#33312F] text-[#B7B4AE] rounded-full hover:bg-[#726E68] transition border border-[#726E68]">
                 <i class="ph-bold ph-squares-four text-xl"></i>
             </button>
             <div id="appsMenuDropdown" class="hidden absolute right-0 mt-3 w-48 bg-[#33312F] rounded-xl shadow-2xl border border-[#726E68] overflow-hidden z-[999]">
-                <!-- 🟢 ปุ่มย้อนกลับแบบไอคอนเล็ก -->
-<button onclick="toggleAppsMenu()" class="w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold text-[#726E68] hover:bg-[#726E68] hover:text-[#0A0A0A] transition border-b border-[#0A0A0A]">
-    <i class="ph-bold ph-arrow-left text-[10px]"></i> ย้อนกลับ
-</button>
-                <a href="https://balenrista.github.io/Balenrista-slip/" target="_blank" class="block px-4 py-3 text-sm font-bold text-[#B7B4AE] hover:bg-[#726E68] hover:text-[#0A0A0A] transition">Slips</a>
-                <a href="https://balenrista.github.io/balenrista-queue/Admin.html" target="_blank" class="block px-4 py-3 text-sm font-bold text-[#B7B4AE] hover:bg-[#726E68] hover:text-[#0A0A0A] transition border-t border-[#0A0A0A]">Queue Systems</a>
+                <a href="https://balenrista.github.io/Balenrista-slip/" target="_blank" class="block px-4 py-3 text-sm font-bold text-[#B7B4AE] hover:bg-[#726E68] hover:text-[#0A0A0A] transition">ระบบบิล</a>
+                <a href="https://balenrista.github.io/balenrista-queue/" target="_blank" class="block px-4 py-3 text-sm font-bold text-[#B7B4AE] hover:bg-[#726E68] hover:text-[#0A0A0A] transition border-t border-[#0A0A0A]">ระบบจัดการคิว</a>
                 <a href="https://balenrista.github.io/BalenristaAIChatBot/" target="_blank" class="block px-4 py-3 text-sm font-bold text-[#B7B4AE] hover:bg-[#726E68] hover:text-[#0A0A0A] transition border-t border-[#0A0A0A]">AI Chat Bot</a>
             </div>
         </div>
