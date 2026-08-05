@@ -237,27 +237,43 @@
                 <h3 class="font-black text-xl flex items-center gap-2" id="manual-title">เพิ่มข้อมูล</h3>
                 <button onclick="closeManualModal()" class="w-8 h-8 bg-[#0A0A0A]/20 rounded-full flex items-center justify-center hover:bg-[#0A0A0A]/40"><i class="ph-bold ph-x"></i></button>
             </div>
-            <div class="p-6 bg-[#0A0A0A] space-y-4">
+            <div class="p-6 bg-[#0A0A0A] space-y-4 max-h-[75vh] overflow-y-auto custom-scrollbar">
                 <input type="hidden" id="manual-type">
+                
                 <div>
-                    <label class="text-xs text-[#726E68] font-bold mb-1 block">วันที่ทำรายการ</label>
+                    <label class="text-xs text-[#726E68] font-bold mb-1 block">วันที่ทำรายการ (ใช้ร่วมกันทั้งหมด)</label>
                     <input type="date" id="manual-date" class="app-input border border-[#33312F]">
                 </div>
-                <div>
-                    <label class="text-xs text-[#726E68] font-bold mb-1 block">ชื่อรายการ</label>
-                    <div id="manual-name-wrapper">
-                        <input type="text" id="manual-name" placeholder="กรอกชื่อรายการ" class="app-input border border-[#33312F]">
+
+                <!-- กล่องสำหรับกรอกข้อมูล -->
+                <div class="bg-[#33312F] p-4 rounded-xl border border-[#726E68] space-y-3">
+                    <div>
+                        <label class="text-xs text-[#726E68] font-bold mb-1 block">ชื่อรายการ</label>
+                        <div id="manual-name-wrapper">
+                            <input type="text" id="manual-name" placeholder="กรอกชื่อรายการ" class="app-input border border-[#0A0A0A]">
+                        </div>
                     </div>
+                    <div id="manual-amount-section"></div>
+                    
+                    <button onclick="addManualItemToList()" class="w-full py-2.5 rounded-full font-bold text-sm bg-[#0A0A0A] text-[#B7B4AE] border border-[#726E68] flex items-center justify-center gap-2 hover:bg-[#726E68] hover:text-[#0A0A0A] transition">
+                        <i class="ph-bold ph-plus"></i> เพิ่มรายการนี้
+                    </button>
                 </div>
-                <div id="manual-amount-section"></div>
+
+                <!-- พื้นที่แสดงรายการที่รอเซฟ -->
+                <div id="manual-pending-list" class="space-y-2 hidden pt-2"></div>
                 
-                <button onclick="saveManualDataSubmit()" id="manual-btn" class="w-full py-3.5 rounded-full font-black mt-2 flex items-center justify-center gap-2 transition">
-                    <i class="ph-bold ph-check-circle text-lg"></i> ยืนยันบันทึกข้อมูล
+                <div id="manual-total-summary" class="hidden flex justify-between items-center px-4 py-3 bg-[#0A0A0A] border border-[#726E68] rounded-xl">
+                    <span class="text-xs font-bold text-[#726E68] uppercase tracking-widest">ยอดรวมทั้งหมด</span>
+                    <span id="manual-grand-total" class="font-black text-[#B7B4AE] text-lg">0 ฿</span>
+                </div>
+
+                <button onclick="saveManualDataSubmit()" id="manual-btn" class="w-full py-3.5 rounded-full font-black mt-2 flex items-center justify-center gap-2 transition hidden">
+                    <i class="ph-bold ph-check-circle text-lg"></i> บันทึกข้อมูล (<span id="manual-pending-count">0</span>)
                 </button>
             </div>
         </div>
     </div>
-
     <script>
         // ==============================================================
         // 🔴 วางลิงก์ Google Apps Script ตรงนี้ครับ
@@ -351,10 +367,17 @@
             } catch(err) { alert("เกิดข้อผิดพลาดในการบันทึก: " + err.message); } finally { setLoading(false); }
         }
 
+        // 🟢 ตัวแปรเก็บรายการที่รอเซฟ
+        let pendingManualItems = [];
+
         function openManualModal(type) {
             const today = new Date();
             document.getElementById('manual-date').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             document.getElementById('manual-type').value = type;
+            
+            // ล้างตะกร้าพักของทุกครั้งที่เปิดหน้าต่างใหม่
+            pendingManualItems = [];
+            renderManualPendingList();
             
             const header = document.getElementById('manual-header'); 
             const title = document.getElementById('manual-title'); 
@@ -365,37 +388,37 @@
             const options = type === 'expense' ? (globalData.expenseOptions || []) : (globalData.materialOptions || []);
             
             if (options && options.length > 0) {
-                let selectHtml = `<select id="manual-name" class="app-input border border-[#33312F]">`;
+                let selectHtml = `<select id="manual-name" class="app-input border border-[#0A0A0A]">`;
                 options.forEach(opt => { selectHtml += `<option value="${opt}">${opt}</option>`; });
                 selectHtml += `</select>`;
                 wrapper.innerHTML = selectHtml;
             } else {
-                wrapper.innerHTML = `<input type="text" id="manual-name" placeholder="${type === 'expense' ? 'เช่น ค่าไฟ, ค่าน้ำ' : 'เช่น เมล็ดกาแฟ, นมสด'}" class="app-input border border-[#33312F]">`;
+                wrapper.innerHTML = `<input type="text" id="manual-name" placeholder="${type === 'expense' ? 'เช่น ค่าไฟ, ค่าน้ำ' : 'เช่น เมล็ดกาแฟ, นมสด'}" class="app-input border border-[#0A0A0A]">`;
             }
             
             if (type === 'expense') {
                 header.className = "p-6 pb-4 bg-[#371E1E] text-[#B7B4AE] flex justify-between items-center rounded-t-[32px]";
                 title.innerHTML = '<i class="ph-bold ph-receipt"></i> เพิ่มค่าใช้จ่าย';
-                btn.className = "w-full bg-[#371E1E] text-[#B7B4AE] py-3.5 rounded-full font-black mt-2 flex items-center justify-center gap-2 hover:bg-[#726E68] hover:text-[#0A0A0A] transition";
+                btn.className = "w-full bg-[#371E1E] text-[#B7B4AE] py-3.5 rounded-full font-black mt-2 flex items-center justify-center gap-2 hover:bg-[#726E68] hover:text-[#0A0A0A] transition hidden";
                 
                 amountSection.innerHTML = `
                     <label class="text-xs text-[#726E68] font-bold mb-1 block">ยอดเงินรวม (฿)</label>
-                    <input type="number" id="manual-total" placeholder="0.00" class="app-input border border-[#33312F]">
+                    <input type="number" id="manual-total" placeholder="0.00" class="app-input border border-[#0A0A0A]">
                 `;
             } else {
                 header.className = "p-6 pb-4 bg-[#B7B4AE] text-[#0A0A0A] flex justify-between items-center rounded-t-[32px]";
                 title.innerHTML = '<i class="ph-bold ph-package"></i> ซื้อวัตถุดิบ';
-                btn.className = "w-full bg-[#B7B4AE] text-[#0A0A0A] py-3.5 rounded-full font-black mt-2 flex items-center justify-center gap-2 hover:bg-[#726E68] hover:text-[#0A0A0A] transition";
+                btn.className = "w-full bg-[#B7B4AE] text-[#0A0A0A] py-3.5 rounded-full font-black mt-2 flex items-center justify-center gap-2 hover:bg-[#726E68] hover:text-[#0A0A0A] transition hidden";
                 
                 amountSection.innerHTML = `
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="text-xs text-[#726E68] font-bold mb-1 block">จำนวนที่ซื้อ</label>
-                            <input type="number" id="manual-qty" placeholder="0" step="any" class="app-input border border-[#33312F]">
+                            <input type="number" id="manual-qty" placeholder="0" step="any" class="app-input border border-[#0A0A0A]">
                         </div>
                         <div>
                             <label class="text-xs text-[#726E68] font-bold mb-1 block">ราคาต่อหน่วย (฿)</label>
-                            <input type="number" id="manual-price" placeholder="0.00" step="any" class="app-input border border-[#33312F]">
+                            <input type="number" id="manual-price" placeholder="0.00" step="any" class="app-input border border-[#0A0A0A]">
                         </div>
                     </div>
                 `;
@@ -405,32 +428,126 @@
 
         function closeManualModal() { document.getElementById('manualModal').style.display = 'none'; }
 
-        async function saveManualDataSubmit() {
+        // 🟢 ฟังก์ชันเอาข้อมูลที่พิมพ์ ดันเข้าตะกร้าพัก
+        function addManualItemToList() {
             const type = document.getElementById('manual-type').value;
-            const date = document.getElementById('manual-date').value;
             const name = document.getElementById('manual-name').value;
             
-            let bodyData = { action: type === 'expense' ? 'saveExpense' : 'saveMaterial', date: date, name: name };
-            
+            let item = { name: name };
+            let totalAmount = 0;
+
             if (type === 'expense') {
                 const total = document.getElementById('manual-total').value;
-                if (!name || !total) { alert("กรุณากรอกข้อมูลชื่อรายการและยอดเงินให้ครบถ้วน"); return; }
-                bodyData.total = parseFloat(total);
+                if (!name || !total) { alert("กรุณากรอกข้อมูลให้ครบถ้วน"); return; }
+                item.total = parseFloat(total);
+                totalAmount = item.total;
+                document.getElementById('manual-total').value = ''; // เคลียร์ช่องให้กรอกใหม่
             } else {
                 const qty = document.getElementById('manual-qty').value;
                 const price = document.getElementById('manual-price').value;
-                if (!name || !qty || !price) { alert("กรุณากรอกวัตถุดิบ จำนวน และราคาต่อหน่วยให้ครบถ้วน"); return; }
-                bodyData.qty = parseFloat(qty);
-                bodyData.price = parseFloat(price);
+                if (!name || !qty || !price) { alert("กรุณากรอกข้อมูลให้ครบถ้วน"); return; }
+                item.qty = parseFloat(qty);
+                item.price = parseFloat(price);
+                totalAmount = item.qty * item.price;
+                document.getElementById('manual-qty').value = ''; // เคลียร์ช่องให้กรอกใหม่
+                document.getElementById('manual-price').value = '';
             }
 
-            setLoading(true, "กำลังส่งข้อมูลบันทึก...");
-            try {
-                await fetch(API_URL, { method: 'POST', body: JSON.stringify(bodyData) });
-                alert("บันทึกข้อมูลเรียบร้อยแล้ว! 🎉"); closeManualModal(); fetchData(); 
-            } catch (err) { alert("เกิดปัญหาในการบันทึก: " + err.message); } finally { setLoading(false); }
+            item.calculatedTotal = totalAmount; // เก็บยอดรวมไว้โชว์
+            pendingManualItems.push(item);
+            
+            // เลื่อน Dropdown กลับไปอันแรก หรือเคลียร์ Text (สำหรับความสะดวก)
+            if(document.getElementById('manual-name').tagName === 'SELECT') {
+                 document.getElementById('manual-name').selectedIndex = 0;
+            } else {
+                 document.getElementById('manual-name').value = '';
+            }
+
+            renderManualPendingList();
         }
 
+        // 🟢 ลบข้อมูลออกจากตะกร้าพัก
+        function removeManualItem(index) {
+            pendingManualItems.splice(index, 1);
+            renderManualPendingList();
+        }
+
+        // 🟢 แสดงผลตะกร้าพัก
+        function renderManualPendingList() {
+            const listContainer = document.getElementById('manual-pending-list');
+            const saveBtn = document.getElementById('manual-btn');
+            const sumContainer = document.getElementById('manual-total-summary');
+            
+            if (pendingManualItems.length === 0) {
+                listContainer.classList.add('hidden');
+                saveBtn.classList.add('hidden');
+                sumContainer.classList.add('hidden');
+                return;
+            }
+
+            let html = '<p class="text-[10px] text-[#726E68] font-bold uppercase tracking-widest text-center mb-2">รายการที่เตรียมบันทึก</p>';
+            let grandTotal = 0;
+
+            pendingManualItems.forEach((item, index) => {
+                grandTotal += item.calculatedTotal;
+                let detailText = item.qty ? `(${item.qty} x ${item.price}฿)` : '';
+                html += `
+                <div class="flex justify-between items-center bg-[#33312F] p-3 rounded-lg border border-[#0A0A0A]">
+                    <div class="flex-grow">
+                        <p class="text-sm font-bold text-[#B7B4AE]">${item.name} <span class="text-[10px] text-[#726E68] font-normal">${detailText}</span></p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-black text-[#B7B4AE]">${fMoney(item.calculatedTotal)} ฿</span>
+                        <button onclick="removeManualItem(${index})" class="w-6 h-6 bg-[#371E1E] text-[#B7B4AE] rounded-full flex items-center justify-center hover:bg-[#0A0A0A]"><i class="ph-bold ph-minus"></i></button>
+                    </div>
+                </div>`;
+            });
+
+            listContainer.innerHTML = html;
+            document.getElementById('manual-pending-count').innerText = pendingManualItems.length;
+            document.getElementById('manual-grand-total').innerText = fMoney(grandTotal) + ' ฿';
+            
+            listContainer.classList.remove('hidden');
+            sumContainer.classList.remove('hidden');
+            saveBtn.classList.remove('hidden');
+        }
+        
+        // 🟢 สั่งบันทึกข้อมูลทั้งหมดในตะกร้า รวดเดียว!
+        async function saveManualDataSubmit() {
+            if (pendingManualItems.length === 0) return;
+            
+            const type = document.getElementById('manual-type').value;
+            const date = document.getElementById('manual-date').value;
+            const sheetName = type === 'expense' ? 'ค่าใช้จ่าย' : 'ซื้อวัตถุดิบ';
+            
+            // แปลงข้อมูลในตะกร้า ให้กลายเป็น Array โครงสร้างเดียวกับ Google Sheet
+            const rowsData = pendingManualItems.map(item => {
+                if (type === 'expense') {
+                    return [date, item.name, item.total];
+                } else {
+                    return [date, item.name, "", item.qty, item.price, ""];
+                }
+            });
+
+            setLoading(true, `กำลังบันทึก ${pendingManualItems.length} รายการ...`);
+            try {
+                await fetch(API_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ 
+                        action: 'saveMultipleManual', 
+                        sheetName: sheetName, 
+                        rows: rowsData 
+                    }) 
+                });
+                alert("บันทึกข้อมูลทั้งหมดเรียบร้อยแล้ว! 🎉"); 
+                closeManualModal(); 
+                fetchData(); 
+            } catch (err) { 
+                alert("เกิดปัญหาในการบันทึก: " + err.message); 
+            } finally { 
+                setLoading(false); 
+            }
+        }
         function setupDropdowns() {
             // ใช้ข้อมูลลิสต์ปีที่มีในระบบ (รับมาจาก Apps Script ตรงๆ เลย เร็วขึ้น!)
             const yearArray = globalData.availableYears || [String(new Date().getFullYear())];
