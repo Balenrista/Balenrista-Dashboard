@@ -790,7 +790,8 @@
             }
         }
 
-        window.onload = fetchData;
+        window.onload = () => fetchData();
+
         // 🟢 สคริปต์เปิด-ปิดเมนู
 function toggleAppsMenu() {
     document.getElementById('appsMenuDropdown').classList.toggle('hidden');
