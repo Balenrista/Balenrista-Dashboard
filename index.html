@@ -298,40 +298,43 @@
         let scannedItemsArray = []; 
 
                 async function fetchData(targetYear = null) {
-            setLoading(true, "SYNCING DATA...");
-            try {
-                // 1. กำหนดปีที่จะดึง ถ้าไม่ได้ระบุให้ใช้ปีปัจจุบัน
-                const yearToFetch = targetYear || new Date().getFullYear();
-                
-                // 2. ส่งปีแนบไปกับ URL
-                const response = await fetch(`${API_URL}?year=${yearToFetch}`);
-                
-                if (!response.ok) throw new Error('Network error');
-                const jsonText = await response.text();
-                globalData = JSON.parse(jsonText);
-                
-                // 3. ตั้งค่าวันที่หน้าเว็บตอนเปิดเว็บครั้งแรก
-                if (!document.getElementById('filter-date').value) {
-                    const today = new Date();
-                    document.getElementById('filter-date').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                }
-                
-                setupDropdowns();
-                
-                // 4. ล็อคแท็บเริ่มต้นเป็น Daily (รายวัน) ถ้ายังไม่มีการเลือก
-                if (typeof activeTab === 'undefined' || !activeTab) {
-                    activeTab = 'daily'; 
-                }
-                
-                // 🔴 5. สั่งคำนวณและวาดกราฟ (เติม await ตรงนี้เพื่อให้ระบบรอประมวลผลเสร็จ)
-                await applyFilters();
-
-            } catch (error) {
-                console.error("Error:", error);
-            } finally { 
-                setLoading(false); 
-            }
+    setLoading(true, "SYNCING DATA...");
+    try {
+        // 1. กำหนดปีที่จะดึง ถ้าไม่ได้ระบุให้ใช้ปีปัจจุบัน
+        const yearToFetch = targetYear || new Date().getFullYear();
+        
+        // 2. ส่งปีแนบไปกับ URL
+        const response = await fetch(`${API_URL}?year=${yearToFetch}`);
+        
+        if (!response.ok) throw new Error('Network error');
+        const jsonText = await response.text();
+        globalData = JSON.parse(jsonText);
+        
+        // 🔴 บังคับเซ็ตค่าปีที่โหลดมาเก็บไว้ เพื่อให้ระบบจำได้และไม่สับสนเวลาเปลี่ยนปี
+        globalData.yearFetched = yearToFetch;
+        
+        // 3. ตั้งค่าวันที่หน้าเว็บตอนเปิดเว็บครั้งแรก
+        if (!document.getElementById('filter-date').value) {
+            const today = new Date();
+            document.getElementById('filter-date').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         }
+        
+        setupDropdowns();
+        
+        // 4. ล็อคแท็บเริ่มต้นเป็น Daily (รายวัน) ถ้ายังไม่มีการเลือก
+        if (typeof activeTab === 'undefined' || !activeTab) {
+            activeTab = 'daily'; 
+        }
+        
+        // 🔴 5. สั่งให้ระบบจัดเตรียม UI ของแท็บนั้นๆ และโหลดข้อมูลโชว์ทันที
+        await setTab(activeTab);
+
+    } catch (error) {
+        console.error("Error:", error);
+    } finally { 
+        setLoading(false); 
+    }
+}
 
         
         function openScanModal() {
@@ -566,26 +569,30 @@
             }
         }
         function setupDropdowns() {
-            const yearArray = globalData.availableYears || [String(new Date().getFullYear())];
-            const fetchedYear = String(globalData.yearFetched || new Date().getFullYear());
-            
-            const selectMYear = document.getElementById('filter-monthly-year'); 
-            const selectYYear = document.getElementById('filter-yearly-year');
-            const selectMMonth = document.getElementById('filter-monthly-month');
+    let yearArray = globalData.availableYears || [String(new Date().getFullYear())];
+    const fetchedYear = String(globalData.yearFetched || new Date().getFullYear());
+    
+    // 🔴 เช็คว่าถ้าปีที่ดึงข้อมูลมา ไม่มีอยู่ใน List ให้เพิ่มเข้าไปด้วย
+    if (!yearArray.includes(fetchedYear)) {
+        yearArray.push(fetchedYear);
+    }
+    
+    const selectMYear = document.getElementById('filter-monthly-year'); 
+    const selectYYear = document.getElementById('filter-yearly-year');
+    const selectMMonth = document.getElementById('filter-monthly-month');
 
-            const currentMonth = selectMMonth.value || String(new Date().getMonth() + 1).padStart(2, '0');
+    const currentMonth = selectMMonth.value || String(new Date().getMonth() + 1).padStart(2, '0');
 
-            // 🟢 อัปเกรด: สร้างตัวเลือกพร้อมฝังคำสั่ง 'selected' ล็อคปีให้ตรงกับข้อมูลที่โหลดมา
-            let yearOptionsHtml = '';
-            yearArray.forEach(y => { 
-                const isSelected = (y === fetchedYear) ? 'selected' : '';
-                yearOptionsHtml += `<option value="${y}" ${isSelected}>${y}</option>`; 
-            });
+    let yearOptionsHtml = '';
+    yearArray.forEach(y => { 
+        const isSelected = (String(y) === fetchedYear) ? 'selected' : '';
+        yearOptionsHtml += `<option value="${y}" ${isSelected}>${y}</option>`; 
+    });
 
-            selectMYear.innerHTML = yearOptionsHtml; 
-            selectYYear.innerHTML = yearOptionsHtml;
-            selectMMonth.value = currentMonth;
-        }
+    selectMYear.innerHTML = yearOptionsHtml; 
+    selectYYear.innerHTML = yearOptionsHtml;
+    selectMMonth.value = currentMonth;
+}
 
                 async function setTab(tab) { // 🔴 เติม async
             activeTab = tab;
