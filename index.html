@@ -555,26 +555,24 @@
             }
         }
         function setupDropdowns() {
-            // ใช้ข้อมูลลิสต์ปีที่มีในระบบ (รับมาจาก Apps Script ตรงๆ เลย เร็วขึ้น!)
             const yearArray = globalData.availableYears || [String(new Date().getFullYear())];
+            const fetchedYear = String(globalData.yearFetched || new Date().getFullYear());
             
             const selectMYear = document.getElementById('filter-monthly-year'); 
             const selectYYear = document.getElementById('filter-yearly-year');
             const selectMMonth = document.getElementById('filter-monthly-month');
 
-            // เก็บค่าเดือนที่เลือกไว้ (ป้องกันไม่ให้เด้งกลับไปเดือนมกราคม เวลาเรากดสลับปี)
             const currentMonth = selectMMonth.value || String(new Date().getMonth() + 1).padStart(2, '0');
 
-            selectMYear.innerHTML = ''; selectYYear.innerHTML = '';
+            // 🟢 อัปเกรด: สร้างตัวเลือกพร้อมฝังคำสั่ง 'selected' ล็อคปีให้ตรงกับข้อมูลที่โหลดมา
+            let yearOptionsHtml = '';
             yearArray.forEach(y => { 
-                selectMYear.innerHTML += `<option value="${y}">${y}</option>`; 
-                selectYYear.innerHTML += `<option value="${y}">${y}</option>`; 
+                const isSelected = (y === fetchedYear) ? 'selected' : '';
+                yearOptionsHtml += `<option value="${y}" ${isSelected}>${y}</option>`; 
             });
 
-            // ล็อก Dropdown ให้โชว์ตามปีที่เพิ่งดึงข้อมูลมา
-            const fetchedYear = String(globalData.yearFetched || new Date().getFullYear());
-            selectMYear.value = fetchedYear; 
-            selectYYear.value = fetchedYear;
+            selectMYear.innerHTML = yearOptionsHtml; 
+            selectYYear.innerHTML = yearOptionsHtml;
             selectMMonth.value = currentMonth;
         }
 
