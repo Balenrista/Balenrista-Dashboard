@@ -300,34 +300,26 @@
                 async function fetchData(targetYear = null) {
     setLoading(true, "SYNCING DATA...");
     try {
-        // 1. กำหนดปีที่จะดึง ถ้าไม่ได้ระบุให้ใช้ปีปัจจุบัน
         const yearToFetch = targetYear || new Date().getFullYear();
-        
-        // 2. ส่งปีแนบไปกับ URL
         const response = await fetch(`${API_URL}?year=${yearToFetch}`);
         
         if (!response.ok) throw new Error('Network error');
         const jsonText = await response.text();
         globalData = JSON.parse(jsonText);
+        globalData.yearFetched = String(yearToFetch);
         
-        // 🔴 บังคับเซ็ตค่าปีที่โหลดมาเก็บไว้ เพื่อให้ระบบจำได้และไม่สับสนเวลาเปลี่ยนปี
-        globalData.yearFetched = yearToFetch;
-        
-        // 3. ตั้งค่าวันที่หน้าเว็บตอนเปิดเว็บครั้งแรก
+        // เซ็ตค่าวันที่เริ่มต้นถ้ายังไม่มี
         if (!document.getElementById('filter-date').value) {
             const today = new Date();
             document.getElementById('filter-date').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         }
         
-        setupDropdowns();
+        setupDropdowns(); // สร้างและซิงค์ Dropdown ปีให้ตรงกันทุกแท็บ
         
-        // 4. ล็อคแท็บเริ่มต้นเป็น Daily (รายวัน) ถ้ายังไม่มีการเลือก
-        if (typeof activeTab === 'undefined' || !activeTab) {
-            activeTab = 'daily'; 
-        }
+        if (!activeTab) activeTab = 'daily';
         
-        // 🔴 5. สั่งให้ระบบจัดเตรียม UI ของแท็บนั้นๆ และโหลดข้อมูลโชว์ทันที
-        await setTab(activeTab);
+        // คำนวณและวาด UI จากข้อมูลที่ดึงมาแล้ว (ไม่ยิง API ซ้ำ)
+        applyFilters(false);
 
     } catch (error) {
         console.error("Error:", error);
@@ -572,6 +564,30 @@
     let yearArray = globalData.availableYears || [String(new Date().getFullYear())];
     const fetchedYear = String(globalData.yearFetched || new Date().getFullYear());
     
+    if (!yearArray.includes(fetchedYear)) {
+        yearArray.push(fetchedYear);
+    }
+    
+    const selectMYear = document.getElementById('filter-monthly-year'); 
+    const selectYYear = document.getElementById('filter-yearly-year');
+    const selectMMonth = document.getElementById('filter-monthly-month');
+
+    const currentMonth = selectMMonth.value || String(new Date().getMonth() + 1).padStart(2, '0');
+
+    let yearOptionsHtml = '';
+    yearArray.forEach(y => { 
+        const isSelected = (String(y) === fetchedYear) ? 'selected' : '';
+        yearOptionsHtml += `<option value="${y}" ${isSelected}>${y}</option>`; 
+    });
+
+    selectMYear.innerHTML = yearOptionsHtml; 
+    selectYYear.innerHTML = yearOptionsHtml;
+    
+    // บังคับเลือก Value ให้ตรงกับปีที่ดึงมา ป้องกันการเกิด mismatch ตอนเปลี่ยนแท็บ
+    selectMYear.value = fetchedYear;
+    selectYYear.value = fetchedYear;
+    selectMMonth.value = currentMonth;
+}
     // 🔴 เช็คว่าถ้าปีที่ดึงข้อมูลมา ไม่มีอยู่ใน List ให้เพิ่มเข้าไปด้วย
     if (!yearArray.includes(fetchedYear)) {
         yearArray.push(fetchedYear);
@@ -594,85 +610,94 @@
     selectMMonth.value = currentMonth;
 }
 
-                async function setTab(tab) { // 🔴 เติม async
-            activeTab = tab;
-            document.querySelectorAll('.pill-tab').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`tab-${tab}`).classList.add('active');
-            document.getElementById('control-daily').classList.add('hidden'); document.getElementById('control-monthly').classList.add('hidden'); document.getElementById('control-yearly').classList.add('hidden');
-            if (tab === 'daily') document.getElementById('control-daily').classList.remove('hidden');
-            if (tab === 'monthly') document.getElementById('control-monthly').classList.remove('hidden');
-            if (tab === 'yearly') document.getElementById('control-yearly').classList.remove('hidden');
-            
-            await applyFilters(); // 🔴 เติม await
+                function setTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.pill-tab').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    
+    document.getElementById('control-daily').classList.add('hidden'); 
+    document.getElementById('control-monthly').classList.add('hidden'); 
+    document.getElementById('control-yearly').classList.add('hidden');
+    
+    if (tab === 'daily') document.getElementById('control-daily').classList.remove('hidden');
+    if (tab === 'monthly') document.getElementById('control-monthly').classList.remove('hidden');
+    if (tab === 'yearly') document.getElementById('control-yearly').classList.remove('hidden');
+    
+    applyFilters(true);
+}
+
+
+                async function applyFilters(allowFetchIfYearChanges = true) {
+    let dateLabel = ""; let y, m, d;
+    
+    if (activeTab === 'daily') {
+        const date = document.getElementById('filter-date').value; 
+        if (date) { [y,m,d] = date.split('-'); dateLabel = `${d}/${m}/${y}`; }
+    } else if (activeTab === 'monthly') {
+        y = document.getElementById('filter-monthly-year').value; 
+        m = document.getElementById('filter-monthly-month').value;
+        const mName = document.getElementById('filter-monthly-month').options[document.getElementById('filter-monthly-month').selectedIndex].text; 
+        dateLabel = `${mName} ${y}`;
+    } else if (activeTab === 'yearly') { 
+        y = document.getElementById('filter-yearly-year').value; 
+        dateLabel = `YEAR ${y}`; 
+    }
+
+    // จะดึงข้อมูลใหม่จากเซิร์ฟเวอร์ "ก็ต่อเมื่อ" ผู้ใช้จงใจเลือกเปลี่ยนปีใน Dropdown เท่านั้น
+    if (allowFetchIfYearChanges && y && globalData.yearFetched && String(y) !== String(globalData.yearFetched)) {
+        await fetchData(y);
+        return; 
+    }
+
+    document.getElementById('badge-mode').innerText = dateLabel;
+    const isMatch = (dateStr) => {
+        if(!dateStr) return false;
+        if (activeTab === 'daily') return dateStr === document.getElementById('filter-date').value;
+        if (activeTab === 'monthly') return dateStr.startsWith(`${y}-${m}`);
+        if (activeTab === 'yearly') return dateStr.startsWith(`${y}-`);
+        return false;
+    };
+    
+    currentKpis = { salesTotal: 0, salesQty: 0, matTotal: 0, expTotal: 0 };
+    let groupedSales = {}; let listMats = {}; let listExps = {};
+    
+    Object.keys(globalData.sales).forEach(dateStr => {
+        if(isMatch(dateStr)) {
+            currentKpis.salesTotal += globalData.sales[dateStr].total; 
+            currentKpis.salesQty += globalData.sales[dateStr].qty;
+            Object.keys(globalData.sales[dateStr].details).forEach(menu => {
+                if(!groupedSales[menu]) groupedSales[menu] = { name: menu, qty: 0, total: 0 };
+                groupedSales[menu].qty += globalData.sales[dateStr].details[menu].qty; 
+                groupedSales[menu].total += globalData.sales[dateStr].details[menu].total;
+            });
         }
-
-
-                async function applyFilters() { // 🔴 เติม async ตรงนี้
-            let dateLabel = ""; let y, m, d;
-            
-            // อ่านค่าการค้นหาจากหน้าเว็บ
-            if (activeTab === 'daily') {
-                const date = document.getElementById('filter-date').value; 
-                if (date) { [y,m,d] = date.split('-'); dateLabel = `${d}/${m}/${y}`; }
-            } else if (activeTab === 'monthly') {
-                y = document.getElementById('filter-monthly-year').value; m = document.getElementById('filter-monthly-month').value;
-                const mName = document.getElementById('filter-monthly-month').options[document.getElementById('filter-monthly-month').selectedIndex].text; dateLabel = `${mName} ${y}`;
-            } else if (activeTab === 'yearly') { 
-                y = document.getElementById('filter-yearly-year').value; dateLabel = `YEAR ${y}`; 
-            }
-
-            // 🔴 เช็คว่าปีที่เลือก ตรงกับข้อมูลปีที่โหลดมาไหม?
-            if (y && globalData.yearFetched && y !== String(globalData.yearFetched)) {
-                await fetchData(y); // 🔴 เติม await ตรงนี้ เพื่อไม่ให้มันข้ามขั้นตอน
-                return; 
-            }
-
-            document.getElementById('badge-mode').innerText = dateLabel;
-            const isMatch = (dateStr) => {
-                if(!dateStr) return false;
-                if (activeTab === 'daily') return dateStr === document.getElementById('filter-date').value;
-                if (activeTab === 'monthly') return dateStr.startsWith(`${y}-${m}`);
-                if (activeTab === 'yearly') return dateStr.startsWith(`${y}-`);
-                return false;
-            };
-            
-            currentKpis = { salesTotal: 0, salesQty: 0, matTotal: 0, expTotal: 0 };
-            let groupedSales = {}; let listMats = {}; let listExps = {};
-            
-            Object.keys(globalData.sales).forEach(dateStr => {
-                if(isMatch(dateStr)) {
-                    currentKpis.salesTotal += globalData.sales[dateStr].total; currentKpis.salesQty += globalData.sales[dateStr].qty;
-                    Object.keys(globalData.sales[dateStr].details).forEach(menu => {
-                        if(!groupedSales[menu]) groupedSales[menu] = { name: menu, qty: 0, total: 0 };
-                        groupedSales[menu].qty += globalData.sales[dateStr].details[menu].qty; groupedSales[menu].total += globalData.sales[dateStr].details[menu].total;
-                    });
-                }
+    });
+    Object.keys(globalData.materials).forEach(dateStr => {
+        if(isMatch(dateStr)) {
+            currentKpis.matTotal += globalData.materials[dateStr].total;
+            Object.keys(globalData.materials[dateStr].details).forEach(item => {
+                if(!listMats[item]) listMats[item] = { name: item, total: 0 };
+                listMats[item].total += globalData.materials[dateStr].details[item].total;
             });
-            Object.keys(globalData.materials).forEach(dateStr => {
-                if(isMatch(dateStr)) {
-                    currentKpis.matTotal += globalData.materials[dateStr].total;
-                    Object.keys(globalData.materials[dateStr].details).forEach(item => {
-                        if(!listMats[item]) listMats[item] = { name: item, total: 0 };
-                        listMats[item].total += globalData.materials[dateStr].details[item].total;
-                    });
-                }
-            });
-            Object.keys(globalData.expenses).forEach(dateStr => {
-                if(isMatch(dateStr)) {
-                    currentKpis.expTotal += globalData.expenses[dateStr].total;
-                    Object.keys(globalData.expenses[dateStr].details).forEach(item => {
-                        if(!listExps[item]) listExps[item] = { name: item, total: 0 };
-                        listExps[item].total += globalData.expenses[dateStr].details[item].total;
-                    });
-                }
-            });
-            currentLists.sales = Object.values(groupedSales).sort((a,b) => b.total - a.total);
-            currentLists.materials = Object.values(listMats).sort((a,b) => b.total - a.total);
-            currentLists.expenses = Object.values(listExps).sort((a,b) => b.total - a.total);
-            
-            updateUI(); 
-            drawChart();
         }
+    });
+    Object.keys(globalData.expenses).forEach(dateStr => {
+        if(isMatch(dateStr)) {
+            currentKpis.expTotal += globalData.expenses[dateStr].total;
+            Object.keys(globalData.expenses[dateStr].details).forEach(item => {
+                if(!listExps[item]) listExps[item] = { name: item, total: 0 };
+                listExps[item].total += globalData.expenses[dateStr].details[item].total;
+            });
+        }
+    });
+    currentLists.sales = Object.values(groupedSales).sort((a,b) => b.total - a.total);
+    currentLists.materials = Object.values(listMats).sort((a,b) => b.total - a.total);
+    currentLists.expenses = Object.values(listExps).sort((a,b) => b.total - a.total);
+    
+    updateUI(); 
+    drawChart();
+}
+
 
         function updateUI() {
             let sumCost = currentKpis.matTotal + currentKpis.expTotal; let net = currentKpis.salesTotal - sumCost;
