@@ -560,60 +560,40 @@
                 setLoading(false); 
             }
         }
-        function setupDropdowns() {
-    let yearArray = globalData.availableYears || [String(new Date().getFullYear())];
-    const fetchedYear = String(globalData.yearFetched || new Date().getFullYear());
-    
-    if (!yearArray.includes(fetchedYear)) {
-        yearArray.push(fetchedYear);
-    }
-    
-    const selectMYear = document.getElementById('filter-monthly-year'); 
-    const selectYYear = document.getElementById('filter-yearly-year');
-    const selectMMonth = document.getElementById('filter-monthly-month');
+                function setupDropdowns() {
+            let yearArray = globalData.availableYears || [String(new Date().getFullYear())];
+            const fetchedYear = String(globalData.yearFetched || new Date().getFullYear());
+            
+            if (!yearArray.includes(fetchedYear)) {
+                yearArray.push(fetchedYear);
+            }
+            
+            const selectMYear = document.getElementById('filter-monthly-year'); 
+            const selectYYear = document.getElementById('filter-yearly-year');
+            const selectMMonth = document.getElementById('filter-monthly-month');
 
-    const currentMonth = selectMMonth.value || String(new Date().getMonth() + 1).padStart(2, '0');
+            const currentMonth = selectMMonth.value || String(new Date().getMonth() + 1).padStart(2, '0');
 
-    let yearOptionsHtml = '';
-    yearArray.forEach(y => { 
-        const isSelected = (String(y) === fetchedYear) ? 'selected' : '';
-        yearOptionsHtml += `<option value="${y}" ${isSelected}>${y}</option>`; 
-    });
+            let yearOptionsHtml = '';
+            yearArray.forEach(y => { 
+                const isSelected = (String(y) === fetchedYear) ? 'selected' : '';
+                yearOptionsHtml += `<option value="${y}" ${isSelected}>${y}</option>`; 
+            });
 
-    selectMYear.innerHTML = yearOptionsHtml; 
-    selectYYear.innerHTML = yearOptionsHtml;
-    
-    // บังคับเลือก Value ให้ตรงกับปีที่ดึงมา ป้องกันการเกิด mismatch ตอนเปลี่ยนแท็บ
-    selectMYear.value = fetchedYear;
-    selectYYear.value = fetchedYear;
-    selectMMonth.value = currentMonth;
-}
-    // 🔴 เช็คว่าถ้าปีที่ดึงข้อมูลมา ไม่มีอยู่ใน List ให้เพิ่มเข้าไปด้วย
-    if (!yearArray.includes(fetchedYear)) {
-        yearArray.push(fetchedYear);
-    }
-    
-    const selectMYear = document.getElementById('filter-monthly-year'); 
-    const selectYYear = document.getElementById('filter-yearly-year');
-    const selectMMonth = document.getElementById('filter-monthly-month');
+            selectMYear.innerHTML = yearOptionsHtml; 
+            selectYYear.innerHTML = yearOptionsHtml;
+            
+            // บังคับเลือก Value ให้ตรงกับปีที่ดึงมา ป้องกันการเกิด mismatch ตอนเปลี่ยนแท็บ
+            selectMYear.value = fetchedYear;
+            selectYYear.value = fetchedYear;
+            selectMMonth.value = currentMonth;
+        }
 
-    const currentMonth = selectMMonth.value || String(new Date().getMonth() + 1).padStart(2, '0');
-
-    let yearOptionsHtml = '';
-    yearArray.forEach(y => { 
-        const isSelected = (String(y) === fetchedYear) ? 'selected' : '';
-        yearOptionsHtml += `<option value="${y}" ${isSelected}>${y}</option>`; 
-    });
-
-    selectMYear.innerHTML = yearOptionsHtml; 
-    selectYYear.innerHTML = yearOptionsHtml;
-    selectMMonth.value = currentMonth;
-}
-
-                function setTab(tab) {
-    activeTab = tab;
-    document.querySelectorAll('.pill-tab').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(`tab-${tab}`).classList.add('active');
+        function setTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.pill-tab').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            
     
     document.getElementById('control-daily').classList.add('hidden'); 
     document.getElementById('control-monthly').classList.add('hidden'); 
