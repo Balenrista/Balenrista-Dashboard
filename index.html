@@ -310,7 +310,7 @@
                 const jsonText = await response.text();
                 globalData = JSON.parse(jsonText);
                 
-                // 3. ตั้งค่าวันที่หน้าเว็บตอนเปิดเว็บครั้งแรก (ถ้ายังไม่มีการเลือก)
+                // 3. ตั้งค่าวันที่หน้าเว็บตอนเปิดเว็บครั้งแรก
                 if (!document.getElementById('filter-date').value) {
                     const today = new Date();
                     document.getElementById('filter-date').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -318,23 +318,21 @@
                 
                 setupDropdowns();
                 
-                // 🔴 [ส่วนที่แก้ปัญหา] ตรวจสอบแท็บและกระตุ้นให้แสดงผลทันที
+                // 🔴 4. ล็อคแท็บเริ่มต้นเป็น Daily (รายวัน) ถ้ายังไม่มีการเลือก
                 if (typeof activeTab === 'undefined' || !activeTab) {
-                    activeTab = 'daily'; // บังคับให้ค่าเริ่มต้นเป็นแท็บรายวัน
+                    activeTab = 'daily'; 
                 }
                 
-                // สั่งให้ระบบรีเฟรชหน้าจอตามแท็บนั้นๆ ทันที
-                if (typeof changeTab === 'function') {
-                    changeTab(activeTab); 
-                } else {
-                    applyFilters();
-                }
+                // 🔴 5. สั่งคำนวณและวาดกราฟทันที! (ลบคำสั่ง changeTab ตัวปัญหาออกไป ใช้ applyFilters ตรงๆ)
+                applyFilters();
 
             } catch (error) {
                 console.error("Error:", error);
-            } finally { setLoading(false); }
+            } finally { 
+                setLoading(false); 
+            }
         }
-
+        
         function openScanModal() {
             const today = new Date();
             document.getElementById('scan-date').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
