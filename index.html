@@ -262,7 +262,7 @@
         // ==============================================================
         // 🔴 วางลิงก์ Google Apps Script ตรงนี้ครับ
         // ==============================================================
-        const API_URL = "https://script.google.com/macros/s/AKfycbyPvXn1ZdoetezNQLY-hPHcr93XOQ0yXZVJeOKiMt_WoY1_s9iT0cIKRXoj3GBTeaMgzg/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbwViZM3nX1BCqbBL6O_aevOMwlZNOHJdCzOqQnbbOPgMg_bvXwJ6da4fMbgJWqCHF5LHg/exec";
 
         let globalData = { sales: {}, materials: {}, expenses: {}, materialOptions: [], expenseOptions: [] };
         let activeTab = 'daily';
@@ -275,38 +275,31 @@
         let currentMimeType = "";
         let scannedItemsArray = []; 
 
-        async function fetchData() {
-            setLoading(true, "SYNCING DATA...");
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('Network error');
-                const jsonText = await response.text();
-                globalData = JSON.parse(jsonText);
-                const today = new Date();
-                document.getElementById('filter-date').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                setupDropdowns();
-                applyFilters();
-            } catch (error) {
-                console.error("Error:", error);
-            } finally { setLoading(false); }
+        async function fetchData(queryParam = "?action=getToday") {
+    setLoading(true, "SYNCING DATA...");
+    try {
+        // แปะ queryParam ต่อท้าย API_URL เพื่อบอกหลังบ้านว่าต้องการข้อมูลช่วงไหน
+        const response = await fetch(API_URL + queryParam); 
+        if (!response.ok) throw new Error('Network error');
+        
+        const jsonText = await response.text();
+        globalData = JSON.parse(jsonText);
+        
+        // ถ้าเป็นการเปิดหน้าเว็บครั้งแรก ให้เซ็ตค่าเริ่มต้นที่ UI
+        if (queryParam === "?action=getToday") {
+            const today = new Date();
+            document.getElementById('filter-date').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            setupDropdowns();
         }
-
-        document.getElementById('scan-file').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                currentBase64 = event.target.result.split(',')[1];
-                currentMimeType = file.type;
-                const preview = document.getElementById('scan-preview');
-                preview.src = event.target.result;
-                preview.classList.remove('hidden');
-                document.getElementById('btn-ai-scan').classList.remove('hidden');
-                document.getElementById('scan-results').classList.add('hidden'); 
-            };
-            reader.readAsDataURL(file);
-        });
-
+        
+        // อัปเดตข้อมูลบนหน้าจอ
+        calculateAndRenderUI(); 
+    } catch (error) {
+        console.error("Error:", error);
+    } finally { 
+        setLoading(false); 
+    }
+}
         function openScanModal() {
             const today = new Date();
             document.getElementById('scan-date').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -462,55 +455,52 @@
         }
 
         function applyFilters() {
-            let dateLabel = ""; let y, m, d;
-            if (activeTab === 'daily') {
-                const date = document.getElementById('filter-date').value; if (date) { [y,m,d] = date.split('-'); dateLabel = `${d}/${m}/${y}`; }
-            } else if (activeTab === 'monthly') {
-                y = document.getElementById('filter-monthly-year').value; m = document.getElementById('filter-monthly-month').value;
-                const mName = document.getElementById('filter-monthly-month').options[document.getElementById('filter-monthly-month').selectedIndex].text; dateLabel = `${mName} ${y}`;
-            } else if (activeTab === 'yearly') { y = document.getElementById('filter-yearly-year').value; dateLabel = `YEAR ${y}`; }
-            document.getElementById('badge-mode').innerText = dateLabel;
-            const isMatch = (dateStr) => {
-                if(!dateStr) return false;
-                if (activeTab === 'daily') return dateStr === document.getElementById('filter-date').value;
-                if (activeTab === 'monthly') return dateStr.startsWith(`${y}-${m}`);
-                if (activeTab === 'yearly') return dateStr.startsWith(`${y}-`);
-                return false;
-            };
-            currentKpis = { salesTotal: 0, salesQty: 0, matTotal: 0, expTotal: 0 };
-            let groupedSales = {}; let listMats = {}; let listExps = {};
-            Object.keys(globalData.sales).forEach(dateStr => {
-                if(isMatch(dateStr)) {
-                    currentKpis.salesTotal += globalData.sales[dateStr].total; currentKpis.salesQty += globalData.sales[dateStr].qty;
-                    Object.keys(globalData.sales[dateStr].details).forEach(menu => {
-                        if(!groupedSales[menu]) groupedSales[menu] = { name: menu, qty: 0, total: 0 };
-                        groupedSales[menu].qty += globalData.sales[dateStr].details[menu].qty; groupedSales[menu].total += globalData.sales[dateStr].details[menu].total;
-                    });
-                }
-            });
-            Object.keys(globalData.materials).forEach(dateStr => {
-                if(isMatch(dateStr)) {
-                    currentKpis.matTotal += globalData.materials[dateStr].total;
-                    Object.keys(globalData.materials[dateStr].details).forEach(item => {
-                        if(!listMats[item]) listMats[item] = { name: item, total: 0 };
-                        listMats[item].total += globalData.materials[dateStr].details[item].total;
-                    });
-                }
-            });
-            Object.keys(globalData.expenses).forEach(dateStr => {
-                if(isMatch(dateStr)) {
-                    currentKpis.expTotal += globalData.expenses[dateStr].total;
-                    Object.keys(globalData.expenses[dateStr].details).forEach(item => {
-                        if(!listExps[item]) listExps[item] = { name: item, total: 0 };
-                        listExps[item].total += globalData.expenses[dateStr].details[item].total;
-                    });
-                }
-            });
-            currentLists.sales = Object.values(groupedSales).sort((a,b) => b.total - a.total);
-            currentLists.materials = Object.values(listMats).sort((a,b) => b.total - a.total);
-            currentLists.expenses = Object.values(listExps).sort((a,b) => b.total - a.total);
-            updateUI(); drawChart();
+    let dateLabel = ""; 
+    let y, m, d;
+    let queryParam = "";
+
+    if (activeTab === 'daily') {
+        const date = document.getElementById('filter-date').value; 
+        if (date) { 
+            [y,m,d] = date.split('-'); 
+            dateLabel = `${d}/${m}/${y}`; 
+            queryParam = `?action=getDaily&date=${date}`; // ส่งวันที่ไปหาแบบ B
         }
+    } else if (activeTab === 'monthly') {
+        y = document.getElementById('filter-monthly-year').value; 
+        m = document.getElementById('filter-monthly-month').value;
+        const mName = document.getElementById('filter-monthly-month').options[document.getElementById('filter-monthly-month').selectedIndex].text; 
+        dateLabel = `${mName} ${y}`;
+        queryParam = `?action=getMonthly&month=${m}&year=${y}`; // ส่งเดือน/ปีไปหาแบบ B
+    } else if (activeTab === 'yearly') { 
+        y = document.getElementById('filter-yearly-year').value; 
+        dateLabel = `YEAR ${y}`; 
+        queryParam = `?action=getYearly&year=${y}`; // ส่งปีไปหาแบบ B
+    }
+    
+    document.getElementById('badge-mode').innerText = dateLabel;
+    
+    // สั่งโหลดข้อมูลใหม่จากหลังบ้านแทนการกรองข้อมูลเดิม
+    if (queryParam) {
+        fetchData(queryParam);
+    }
+}เยี่ยมเลยครับที่แก้ฝั่งหลังบ้าน (`Code.gs`) ไปเรียบร้อยแล้ว ตอนนี้ก็เหลือฝั่งหน้าบ้าน (`index.html`) 
+
+แต่เนื่องจากผมยังไม่เห็นโค้ด `index.html` ของคุณ และไม่แน่ใจว่าระบบที่คุณกำลังทำอยู่คืออะไร (เช่น ระบบบันทึกข้อมูลฟอร์ม, ระบบดึงข้อมูลมาแสดงตาราง, หรือระบบค้นหา) ผมจึงขอแนะนำ **จุดหลักๆ 4 จุดที่มักจะต้องแก้ใน `index.html`** เมื่อมีการปรับ `Code.gs` ครับ:
+
+### 1. การส่งค่า (Inputs) ไปยัง Code.gs
+ถ้าใน `Code.gs` ฟังก์ชันของคุณมีการรับค่าพารามิเตอร์เปลี่ยนไป (เช่น เพิ่มช่องกรอกข้อมูล) คุณต้องมาเช็คใน `index.html` ว่า:
+* มี `<input>`, `<select>` หรือ `<textarea>` ครบตามที่ `Code.gs` ต้องการหรือยัง
+* ตอนกดปุ่ม (Submit) มีการดึงค่าจากช่องเหล่านั้นมาใส่ตัวแปรครบไหม
+
+### 2. การเรียกใช้ `google.script.run`
+นี่คือหัวใจหลักที่หน้าเว็บใช้คุยกับ `Code.gs` ครับ ถ้าคุณเปลี่ยนชื่อฟังก์ชันใน `Code.gs` คุณต้องมาเปลี่ยนตรงนี้ด้วย
+**ตัวอย่าง:**
+```javascript
+// ถ้าใน Code.gs คุณแก้ชื่อฟังก์ชันเป็น saveData()
+google.script.run
+  .withSuccessHandler(onSuccess)
+  .saveData(ข้อมูลที่จะส่งไป); // <--- ต้องแก้ชื่อฟังก์ชันตรงนี้ให้ตรงกับ Code.gs
 
         function updateUI() {
             let sumCost = currentKpis.matTotal + currentKpis.expTotal; let net = currentKpis.salesTotal - sumCost;
