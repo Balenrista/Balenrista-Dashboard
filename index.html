@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+รีต<!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
@@ -297,7 +297,7 @@
         let currentMimeType = "";
         let scannedItemsArray = []; 
 
-        async function fetchData(targetYear = null) {
+                async function fetchData(targetYear = null) {
             setLoading(true, "SYNCING DATA...");
             try {
                 // 1. กำหนดปีที่จะดึง ถ้าไม่ได้ระบุให้ใช้ปีปัจจุบัน
@@ -318,13 +318,13 @@
                 
                 setupDropdowns();
                 
-                // 🔴 4. ล็อคแท็บเริ่มต้นเป็น Daily (รายวัน) ถ้ายังไม่มีการเลือก
+                // 4. ล็อคแท็บเริ่มต้นเป็น Daily (รายวัน) ถ้ายังไม่มีการเลือก
                 if (typeof activeTab === 'undefined' || !activeTab) {
                     activeTab = 'daily'; 
                 }
                 
-                // 🔴 5. สั่งคำนวณและวาดกราฟทันที! (ลบคำสั่ง changeTab ตัวปัญหาออกไป ใช้ applyFilters ตรงๆ)
-                applyFilters();
+                // 🔴 5. สั่งคำนวณและวาดกราฟ (เติม await ตรงนี้เพื่อให้ระบบรอประมวลผลเสร็จ)
+                await applyFilters();
 
             } catch (error) {
                 console.error("Error:", error);
@@ -332,6 +332,7 @@
                 setLoading(false); 
             }
         }
+
         
         function openScanModal() {
             const today = new Date();
@@ -586,7 +587,7 @@
             selectMMonth.value = currentMonth;
         }
 
-        function setTab(tab) {
+                async function setTab(tab) { // 🔴 เติม async
             activeTab = tab;
             document.querySelectorAll('.pill-tab').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`tab-${tab}`).classList.add('active');
@@ -594,10 +595,12 @@
             if (tab === 'daily') document.getElementById('control-daily').classList.remove('hidden');
             if (tab === 'monthly') document.getElementById('control-monthly').classList.remove('hidden');
             if (tab === 'yearly') document.getElementById('control-yearly').classList.remove('hidden');
-            applyFilters();
+            
+            await applyFilters(); // 🔴 เติม await
         }
 
-        function applyFilters() {
+
+                async function applyFilters() { // 🔴 เติม async ตรงนี้
             let dateLabel = ""; let y, m, d;
             
             // อ่านค่าการค้นหาจากหน้าเว็บ
@@ -611,11 +614,10 @@
                 y = document.getElementById('filter-yearly-year').value; dateLabel = `YEAR ${y}`; 
             }
 
-            // 🔴 [ส่วนที่ฉลาดขึ้น] เช็คว่าปีที่เลือก ตรงกับข้อมูลปีที่โหลดมาไหม?
-            // ถ้าไม่ตรง (เช่น โหลดข้อมูลปี 2026 มา แต่ลูกค้าเลื่อนไปดูปี 2025) ให้ไปดึงข้อมูลปี 2025 มาใหม่!
+            // 🔴 เช็คว่าปีที่เลือก ตรงกับข้อมูลปีที่โหลดมาไหม?
             if (y && globalData.yearFetched && y !== String(globalData.yearFetched)) {
-                fetchData(y); 
-                return; // สั่งจบการทำงานตรงนี้ก่อน รอ fetchData เสร็จมันจะกลับมาลุยต่อเอง
+                await fetchData(y); // 🔴 เติม await ตรงนี้ เพื่อไม่ให้มันข้ามขั้นตอน
+                return; 
             }
 
             document.getElementById('badge-mode').innerText = dateLabel;
@@ -660,8 +662,11 @@
             currentLists.sales = Object.values(groupedSales).sort((a,b) => b.total - a.total);
             currentLists.materials = Object.values(listMats).sort((a,b) => b.total - a.total);
             currentLists.expenses = Object.values(listExps).sort((a,b) => b.total - a.total);
-            updateUI(); drawChart();
+            
+            updateUI(); 
+            drawChart();
         }
+
         function updateUI() {
             let sumCost = currentKpis.matTotal + currentKpis.expTotal; let net = currentKpis.salesTotal - sumCost;
             document.getElementById('kpi-sales').innerText = fMoney(currentKpis.salesTotal) + ' ฿';
