@@ -317,7 +317,19 @@
                 }
                 
                 setupDropdowns();
-                applyFilters();
+                
+                // 🔴 [ส่วนที่แก้ปัญหา] ตรวจสอบแท็บและกระตุ้นให้แสดงผลทันที
+                if (typeof activeTab === 'undefined' || !activeTab) {
+                    activeTab = 'daily'; // บังคับให้ค่าเริ่มต้นเป็นแท็บรายวัน
+                }
+                
+                // สั่งให้ระบบรีเฟรชหน้าจอตามแท็บนั้นๆ ทันที
+                if (typeof changeTab === 'function') {
+                    changeTab(activeTab); 
+                } else {
+                    applyFilters();
+                }
+
             } catch (error) {
                 console.error("Error:", error);
             } finally { setLoading(false); }
